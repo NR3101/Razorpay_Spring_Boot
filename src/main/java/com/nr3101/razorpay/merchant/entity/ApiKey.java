@@ -28,13 +28,17 @@ public class ApiKey {
     private String keyId;
 
     @Column(nullable = false, length = 100)
-    private String keySecret;
+    private String keySecretHash; // Store only the hash of the secret key for security
+
+    @Column(length = 100)
+    private String previousKeySecretHash; // Store the hash of the previous secret key for rotation purposes
 
     @Column(length = 20, nullable = false)
     @Enumerated(EnumType.STRING)
     private Environment environment; // e.g., "TEST" or "PRODUCTION"
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean enabled = true;
 
     private LocalDateTime lastUsedAt;

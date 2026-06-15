@@ -1,19 +1,18 @@
 package com.nr3101.razorpay.common.entity;
 
 import jakarta.persistence.Embeddable;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
+@Getter
+@Setter
 @Embeddable // Indicates that this class can be embedded in an entity i.e. all of its fields will be stored in the same table as the owning entity
 @NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode
 public class Money {
 
     private int amountUnits; // Amount in the smallest currency unit (e.g., cents for USD)
     private String currency; // Currency code (e.g., "USD", "INR")
-
-    private Money(int amountUnits, String currency) {
-        this.amountUnits = amountUnits;
-        this.currency = currency;
-    }
 
     public static Money of(int amountUnits, String currency) {
         if (amountUnits < 0) {

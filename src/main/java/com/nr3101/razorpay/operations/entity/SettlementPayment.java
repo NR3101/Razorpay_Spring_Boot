@@ -20,7 +20,7 @@ public class SettlementPayment {
     @EmbeddedId // Indicates that this field is an embedded primary key, which is a composite key consisting of settlementId and paymentId
     private SettlementPaymentId id; // Composite primary key consisting of settlementId and paymentId
 
-    @MapsId() // Maps the settlementId part of the composite key to the settlement field, and doesn't require a separate column for settlementId in the settlement_payment table as it will use the settlementId from the composite key
+    @MapsId("settlementId") // Maps the settlementId part of the composite key to the settlement field, and doesn't require a separate column for settlementId in the settlement_payment table as it will use the settlementId from the composite key
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "settlement_id", nullable = false)
     private Settlement settlement;

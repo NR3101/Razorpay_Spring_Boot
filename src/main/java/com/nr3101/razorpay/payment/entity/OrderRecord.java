@@ -31,12 +31,16 @@ public class OrderRecord {
     @Embedded // Used to indicate that Money is a value object and its fields should be mapped to the same table
     private Money amount;
 
+    @Column(length = 100)
+    private String receipt; // Optional field to store a receipt identifier i.e. a unique string that can be used to identify the order in the merchant's system
+
     @Column(length = 20, nullable = false)
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private OrderStatus status = OrderStatus.CREATED; // Default status when order is created
 
     @Column(nullable = false)
+    @Builder.Default
     private Integer attempts = 0; // Number of attempts made to process the order
 
     @JdbcTypeCode(SqlTypes.JSON) // Converts the JSON blob to a Map<String, Object> and vice versa
