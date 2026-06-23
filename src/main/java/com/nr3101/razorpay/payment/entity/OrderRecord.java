@@ -1,5 +1,6 @@
 package com.nr3101.razorpay.payment.entity;
 
+import com.nr3101.razorpay.common.entity.BaseEntity;
 import com.nr3101.razorpay.common.entity.Money;
 import com.nr3101.razorpay.common.enums.OrderStatus;
 import jakarta.persistence.*;
@@ -17,8 +18,12 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "order_record")
-public class OrderRecord {
+@Table(name = "order_record",
+        indexes = {
+                @Index(name = "idx_order_id_merchant_id", columnList = "id, merchant_id"),
+                @Index(name = "idx_order_merchant_id", columnList = "merchant_id")
+        })
+public class OrderRecord extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -45,7 +50,7 @@ public class OrderRecord {
 
     @JdbcTypeCode(SqlTypes.JSON) // Converts the JSON blob to a Map<String, Object> and vice versa
     @Column(columnDefinition = "jsonb") //  Store the notes as a JSON object in the database
-    private Map<String,Object> notes; // Additional info related to the order, stored as a JSON object
+    private Map<String, Object> notes; // Additional info related to the order, stored as a JSON object
 
     @Column(nullable = false)
     private LocalDateTime expiresAt; // Time when the order expires

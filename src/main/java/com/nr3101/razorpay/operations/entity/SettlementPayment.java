@@ -1,5 +1,6 @@
 package com.nr3101.razorpay.operations.entity;
 
+import com.nr3101.razorpay.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -15,12 +16,14 @@ import lombok.*;
 @NoArgsConstructor
 @Entity
 @Table(name = "settlement_payment")
-public class SettlementPayment {
+public class SettlementPayment extends BaseEntity {
 
-    @EmbeddedId // Indicates that this field is an embedded primary key, which is a composite key consisting of settlementId and paymentId
+    @EmbeddedId
+    // Indicates that this field is an embedded primary key, which is a composite key consisting of settlementId and paymentId
     private SettlementPaymentId id; // Composite primary key consisting of settlementId and paymentId
 
-    @MapsId("settlementId") // Maps the settlementId part of the composite key to the settlement field, and doesn't require a separate column for settlementId in the settlement_payment table as it will use the settlementId from the composite key
+    @MapsId("settlementId")
+    // Maps the settlementId part of the composite key to the settlement field, and doesn't require a separate column for settlementId in the settlement_payment table as it will use the settlementId from the composite key
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "settlement_id", nullable = false)
     private Settlement settlement;

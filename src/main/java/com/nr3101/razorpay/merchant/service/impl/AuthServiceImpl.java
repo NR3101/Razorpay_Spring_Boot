@@ -7,6 +7,7 @@ import com.nr3101.razorpay.merchant.dto.request.MerchantSignupRequest;
 import com.nr3101.razorpay.merchant.dto.response.MerchantResponse;
 import com.nr3101.razorpay.merchant.entity.AppUser;
 import com.nr3101.razorpay.merchant.entity.Merchant;
+import com.nr3101.razorpay.merchant.mapper.MerchantMapper;
 import com.nr3101.razorpay.merchant.repository.AppUserRepository;
 import com.nr3101.razorpay.merchant.repository.MerchantRepository;
 import com.nr3101.razorpay.merchant.service.AuthService;
@@ -22,26 +23,22 @@ public class AuthServiceImpl implements AuthService {
 
     private final AppUserRepository appUserRepository;
     private final MerchantRepository merchantRepository;
+    private final MerchantMapper merchantMapper;
 
     @Override
     @Transactional
     public MerchantResponse signup(MerchantSignupRequest request) {
         log.info("Received signup request for email: {}", request.email());
 
-        if(merchantRepository.existsByEmail(request.email())) {
+        if (merchantRepository.existsByEmail(request.email())) {
             throw new DuplicateResourceException(
                     "DUPLICATE_MERCHANT_EMAIL",
                     "Merchant with email " + request.email() + " already exists"
             );
         }
 
-        Merchant merchant = Merchant.builder()
-                .name(request.name())
-                .email(request.email())
-                .businessName(request.businessName())
-                .businessType(request.businessType())
-                .status(MerchantStatus.PENDING_KYC)
-                .build();
+        Merchant merchant = merchantMapper.toEntityFromSignUpRequest(request);
+        merchant.setStatus(MerchantStatus.PENDING_KYC); // Set default status to PENDING_KYC
         merchant = merchantRepository.save(merchant);
 
         AppUser appUser = AppUser.builder()
@@ -52,13 +49,6 @@ public class AuthServiceImpl implements AuthService {
                 .build();
         appUserRepository.save(appUser);
 
-        return MerchantResponse.builder()
-                .id(merchant.getId())
-                .name(merchant.getName())
-                .email(merchant.getEmail())
-                .businessName(merchant.getBusinessName())
-                .businessType(merchant.getBusinessType())
-                .merchantStatus(merchant.getStatus())
-                .build();
+        return merchantMapper.toResponse(merchant);
     }
 }

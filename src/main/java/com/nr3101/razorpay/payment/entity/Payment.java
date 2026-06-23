@@ -1,5 +1,6 @@
 package com.nr3101.razorpay.payment.entity;
 
+import com.nr3101.razorpay.common.entity.BaseEntity;
 import com.nr3101.razorpay.common.entity.Money;
 import com.nr3101.razorpay.common.enums.PaymentMethod;
 import com.nr3101.razorpay.common.enums.PaymentStatus;
@@ -18,8 +19,12 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "payment")
-public class Payment {
+@Table(name = "payment",
+        indexes = {
+                @Index(name = "idx_payment_order_id", columnList = "order_id"),
+                @Index(name = "idx_payment_merchant_id", columnList = "merchant_id")
+        })
+public class Payment extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -52,6 +57,9 @@ public class Payment {
 
     @Column(length = 100)
     private String bankReference;
+
+    @Column(length = 100)
+    private String processorReference;
 
     @Column(length = 100)
     private String errorCode;

@@ -2,8 +2,6 @@ package com.nr3101.razorpay.common.exception;
 
 import lombok.Getter;
 
-import java.util.UUID;
-
 @Getter
 public class ResourceNotFoundException extends RuntimeException {
 

@@ -7,6 +7,7 @@ import com.nr3101.razorpay.merchant.dto.response.ApiKeyResponse;
 import com.nr3101.razorpay.merchant.dto.response.CreateApiKeyResponse;
 import com.nr3101.razorpay.merchant.entity.ApiKey;
 import com.nr3101.razorpay.merchant.entity.Merchant;
+import com.nr3101.razorpay.merchant.mapper.ApiKeyMapper;
 import com.nr3101.razorpay.merchant.repository.ApiKeyRepository;
 import com.nr3101.razorpay.merchant.repository.MerchantRepository;
 import com.nr3101.razorpay.merchant.service.ApiKeyService;
@@ -26,6 +27,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
 
     private final ApiKeyRepository apiKeyRepository;
     private final MerchantRepository merchantRepository;
+    private final ApiKeyMapper apiKeyMapper;
 
     @Override
     @Transactional
@@ -57,17 +59,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
     public List<ApiKeyResponse> listByMerchant(UUID merchantId) {
         log.info("Listing API keys for merchantId={}", merchantId);
 
-        return apiKeyRepository.findByMerchant_Id(merchantId)
-                .stream()
-                .map(apiKey -> ApiKeyResponse.builder()
-                        .id(apiKey.getId())
-                        .keyId(apiKey.getKeyId())
-                        .environment(apiKey.getEnvironment())
-                        .enabled(apiKey.isEnabled())
-                        .lastUsedAt(apiKey.getLastUsedAt())
-                        .createdAt(null)
-                        .build())
-                .toList();
+        return apiKeyMapper.toResponseList(apiKeyRepository.findByMerchant_Id(merchantId));
     }
 
     @Override
@@ -89,6 +81,10 @@ public class ApiKeyServiceImpl implements ApiKeyService {
 
         ApiKey apiKey = apiKeyRepository.findByIdAndMerchant_Id(apiKeyId, merchantId)
                 .orElseThrow(() -> new ResourceNotFoundException("apiKey", apiKeyId));
+
+        if (!apiKey.isEnabled()) {
+            throw new RuntimeException("Cannot rotate a revoked API key");
+        }
 
         String newRawSecret = RandomizerUtil.randomBase64(40); // Generate a new random secret key
         apiKey.setPreviousKeySecretHash(apiKey.getKeySecretHash()); // Move current secret hash to previous
