@@ -9,8 +9,34 @@ import java.util.UUID;
 
 @Builder
 public record PaymentProcessorRequest(
+        UUID processingId,
+        UUID paymentId,
         PaymentMethod method,
         Money amount,
+        String pan,
+        String expiry,
         Map<String, Object> methodDetails
 ) {
+
+    public static PaymentProcessorRequest card(UUID paymentId, String pan, String expiry, Money amount, Map<String, Object> details) {
+        return PaymentProcessorRequest.builder()
+                .processingId(UUID.randomUUID())
+                .paymentId(paymentId)
+                .method(PaymentMethod.CARD)
+                .amount(amount)
+                .pan(pan)
+                .expiry(expiry)
+                .methodDetails(details)
+                .build();
+    }
+
+    public static PaymentProcessorRequest noncard(UUID paymentId, PaymentMethod method, Money amount, Map<String, Object> details) {
+        return PaymentProcessorRequest.builder()
+                .processingId(UUID.randomUUID())
+                .paymentId(paymentId)
+                .method(method)
+                .amount(amount)
+                .methodDetails(details)
+                .build();
+    }
 }
