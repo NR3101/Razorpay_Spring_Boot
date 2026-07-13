@@ -16,11 +16,11 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "payment_transaction_log",
+@Table(name = "payment_transition_log",
         indexes = {
-                @Index(name = "idx_payment_transaction_log_payment_id", columnList = "payment_id")
+                @Index(name = "idx_payment_transition_log_payment_id", columnList = "payment_id")
         })
-public class PaymentTransactionLog extends BaseEntity {
+public class PaymentTransitionLog extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

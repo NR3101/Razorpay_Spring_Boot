@@ -52,7 +52,7 @@ public class OrderServiceImpl implements OrderService {
                 .receipt(request.receipt())
                 .amount(request.amount())
                 .notes(request.notes())
-                .status(OrderStatus.CREATED)
+                .orderStatus(OrderStatus.CREATED)
                 .expiresAt(request.expiresAt() != null ? request.expiresAt() : LocalDateTime.now().plusMinutes(DEFAULT_ORDER_EXPIRATION_MINUTES))
                 .build();
         order = orderRepository.save(order);
@@ -73,11 +73,11 @@ public class OrderServiceImpl implements OrderService {
         OrderRecord order = orderRepository.findByIdAndMerchantId(orderId, merchantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
 
-        if (order.getStatus() == OrderStatus.CANCELLED || order.getStatus() == OrderStatus.PAID) {
-            throw new BusinessRuleViolationException("ORDER_CANNOT_BE_CANCELLED", "Order cannot be cancelled as it is already " + order.getStatus());
+        if (order.getOrderStatus() == OrderStatus.CANCELLED || order.getOrderStatus() == OrderStatus.PAID) {
+            throw new BusinessRuleViolationException("ORDER_CANNOT_BE_CANCELLED", "Order cannot be cancelled as it is already " + order.getOrderStatus());
         }
 
-        order.setStatus(OrderStatus.CANCELLED);
+        order.setOrderStatus(OrderStatus.CANCELLED);
         order = orderRepository.save(order);
 
         return orderMapper.toResponse(order);

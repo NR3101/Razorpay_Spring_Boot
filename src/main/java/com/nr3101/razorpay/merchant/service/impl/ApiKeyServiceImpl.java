@@ -13,6 +13,7 @@ import com.nr3101.razorpay.merchant.repository.MerchantRepository;
 import com.nr3101.razorpay.merchant.service.ApiKeyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,8 @@ public class ApiKeyServiceImpl implements ApiKeyService {
     private final MerchantRepository merchantRepository;
     private final ApiKeyMapper apiKeyMapper;
 
+    private BCryptPasswordEncoder BCRYPT = new BCryptPasswordEncoder();
+
     @Override
     @Transactional
     public CreateApiKeyResponse createApiKey(UUID merchantId, CreateApiKeyRequest request) {
@@ -40,7 +43,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
 
         ApiKey apiKey = ApiKey.builder()
                 .keyId(keyId)
-                .keySecretHash(rawSecret) //TODO: Encrypt the secret before saving
+                .keySecretHash(BCRYPT.encode(rawSecret)) // Store only the hash of the secret key for security
                 .environment(request.environment())
                 .merchant(merchant)
                 .build();
@@ -88,7 +91,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
 
         String newRawSecret = RandomizerUtil.randomBase64(40); // Generate a new random secret key
         apiKey.setPreviousKeySecretHash(apiKey.getKeySecretHash()); // Move current secret hash to previous
-        apiKey.setKeySecretHash(newRawSecret); //TODO: Encrypt the secret before saving
+        apiKey.setKeySecretHash(BCRYPT.encode(newRawSecret)); // Update to new secret hash
         apiKey.setRotatedAt(LocalDateTime.now());
         apiKey.setGracePeriodExpiresAt(LocalDateTime.now().plusHours(24)); // Set a grace period of 24 hours
         apiKey = apiKeyRepository.save(apiKey);

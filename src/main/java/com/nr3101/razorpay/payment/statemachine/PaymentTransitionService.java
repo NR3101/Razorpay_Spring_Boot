@@ -4,8 +4,8 @@ import com.nr3101.razorpay.common.enums.PaymentActor;
 import com.nr3101.razorpay.common.enums.PaymentEvent;
 import com.nr3101.razorpay.common.enums.PaymentStatus;
 import com.nr3101.razorpay.payment.entity.Payment;
-import com.nr3101.razorpay.payment.entity.PaymentTransactionLog;
-import com.nr3101.razorpay.payment.repository.PaymentTransactionLogRepository;
+import com.nr3101.razorpay.payment.entity.PaymentTransitionLog;
+import com.nr3101.razorpay.payment.repository.PaymentTransitionLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,16 +20,15 @@ import java.time.LocalDateTime;
 @Slf4j
 public class PaymentTransitionService {
 
-    private final PaymentTransactionLogRepository paymentTransactionLogRepository;
+    private final PaymentTransitionLogRepository paymentTransitionLogRepository;
     private final PaymentStateMachine paymentStateMachine;
 
     public PaymentStatus apply(Payment payment, PaymentEvent event) {
         log.info("Applying event {} to payment {}", event, payment.getId());
 
         PaymentStatus next = paymentStateMachine.transition(payment.getStatus(), event);
-        payment.setStatus(next);
 
-        PaymentTransactionLog log = PaymentTransactionLog.builder()
+        PaymentTransitionLog log = PaymentTransitionLog.builder()
                 .payment(payment)
                 .fromStatus(payment.getStatus())
                 .toStatus(next)
@@ -38,7 +37,8 @@ public class PaymentTransitionService {
                 .occurredAt(LocalDateTime.now())
                 .build();
 
-        paymentTransactionLogRepository.save(log);
+        payment.setStatus(next);
+        paymentTransitionLogRepository.save(log);
 
         return next;
     }

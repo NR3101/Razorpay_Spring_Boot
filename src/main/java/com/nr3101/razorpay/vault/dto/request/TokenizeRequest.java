@@ -1,10 +1,7 @@
 package com.nr3101.razorpay.vault.dto.request;
 
 import com.nr3101.razorpay.vault.validation.ExpiryYear;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Builder;
 import org.hibernate.validator.constraints.LuhnCheck;
 
@@ -23,11 +20,13 @@ public record TokenizeRequest(
         String cvv,
 
         @NotNull(message = "Expiry month is required")
-        @Pattern(regexp = "^(0[1-9]|1[0-2])$", message = "Expiry month must be between 01 and 12")
+        @Min(value = 1, message = "Expiry month must be between 1 and 12")
+        @Max(value = 12, message = "Expiry month must be between 1 and 12")
         Integer expiryMonth,
 
         @NotNull(message = "Expiry year is required")
-        @Pattern(regexp = "^[0-9]{4}$", message = "Expiry year must be a 4-digit year")
+        @Min(value = 1000, message = "Expiry year must be a 4-digit year")
+        @Max(value = 9999, message = "Expiry year must be a 4-digit year")
         @ExpiryYear // our custom annotation to validate that the expiry year is not in the past
         Integer expiryYear,
 

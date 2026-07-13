@@ -44,11 +44,11 @@ public class PaymentServiceImpl implements PaymentService {
         OrderRecord order = orderRepository.findByIdAndMerchantId(request.orderId(), merchantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", request.orderId()));
 
-        if (order.getStatus() != OrderStatus.CREATED && order.getStatus() != OrderStatus.ATTEMPTED) {
-            throw new BusinessRuleViolationException("INVALID_ORDER_STATUS", "Order is not in a valid state for payment initiation: " + order.getStatus());
+        if (order.getOrderStatus() != OrderStatus.CREATED && order.getOrderStatus() != OrderStatus.ATTEMPTED) {
+            throw new BusinessRuleViolationException("INVALID_ORDER_STATUS", "Order is not in a valid state for payment initiation: " + order.getOrderStatus());
         }
 
-        order.setStatus(OrderStatus.ATTEMPTED);
+        order.setOrderStatus(OrderStatus.ATTEMPTED);
         order.setAttempts(order.getAttempts() + 1);
 
         Payment payment = Payment.builder()
@@ -57,6 +57,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .amount(order.getAmount())
                 .status(PaymentStatus.CREATED)
                 .method(request.method())
+                .idempotencyKey(UUID.randomUUID().toString()) // TODO: Replace with actual idempotency logic
                 .methodDetails(request.methodDetails())
                 .build();
         payment = paymentRepository.save(payment);
@@ -69,6 +70,9 @@ public class PaymentServiceImpl implements PaymentService {
                 .method(request.method())
                 .methodDetails(request.methodDetails())
                 .build();
+
+        // Put the payment in the AUTHORIZE_ATTEMPT transitioning state bcz only then it can move to AUTHORIZED state as per our PaymentStateMachine
+        paymentTransitionService.apply(payment, PaymentEvent.AUTHORIZE_ATTEMPT);
         PaymentResult result = paymentGatewayRouter.initiate(paymentRequest);
 
         switch (result) {
@@ -123,5 +127,52 @@ public class PaymentServiceImpl implements PaymentService {
         payment = paymentRepository.save(payment);
 
         return paymentMapper.toResponse(payment);
+    }
+
+    @Override
+    @Transactional
+    public void resolveAuthorization(UUID paymentId, boolean approve, String banRef, String errorCode, String errorDescription) {
+        log.info("Resolving authorization for paymentId: {}, approve: {}", paymentId, approve);
+
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment", paymentId));
+
+        if (payment.getStatus() != PaymentStatus.AUTHORIZING) {
+            log.warn("Payment {} is not in AUTHORIZING state, current state: {}", paymentId, payment.getStatus());
+            return;
+        }
+
+        OrderRecord order = payment.getOrder();
+
+        // if payment is approved from bank side
+        if (approve) {
+            // Put it in AUTHORIZE_SUCCESS state
+            paymentTransitionService.apply(payment, PaymentEvent.AUTHORIZE_SUCCESS);
+            payment.setBankReference(banRef);
+            payment.setAuthorizedAt(LocalDateTime.now());
+
+            // Do Auto-Capture
+            paymentTransitionService.apply(payment, PaymentEvent.CAPTURE_REQUEST);
+            PaymentResult captureResult = paymentGatewayRouter.capture(payment.getMethod(), paymentId);
+
+            if (captureResult instanceof PaymentResult.Success success) {
+                paymentTransitionService.apply(payment, PaymentEvent.CAPTURE_SUCCESS);
+                payment.setCapturedAt(LocalDateTime.now());
+                order.setOrderStatus(OrderStatus.PAID);
+            } else if (captureResult instanceof PaymentResult.Failure failure) {
+                paymentTransitionService.apply(payment, PaymentEvent.CAPTURE_FAIL);
+                payment.setErrorCode(failure.errorCode());
+                payment.setErrorDescription(failure.errorDescription());
+            }
+        } else {
+            paymentTransitionService.apply(payment, PaymentEvent.AUTHORIZE_FAIL);
+            payment.setErrorCode(errorCode);
+            payment.setErrorDescription(errorDescription);
+        }
+
+        payment = paymentRepository.save(payment);
+        orderRepository.save(order);
+
+        // TODO: send an Outbox Kafka event
     }
 }
