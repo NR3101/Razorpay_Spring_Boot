@@ -10,7 +10,26 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
+    networks:
+      - razorpay-network
     restart: no
+
+  redis-cache:
+    image: redis:7.4-alpine
+    container_name: razorpay-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - razorpay-network
+    restart: no
+
+networks:
+  razorpay-network:
+    driver: bridge
 
 volumes:
   postgres_data:
+  redis_data:

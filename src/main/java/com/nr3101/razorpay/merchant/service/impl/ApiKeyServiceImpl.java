@@ -2,6 +2,7 @@ package com.nr3101.razorpay.merchant.service.impl;
 
 import com.nr3101.razorpay.common.exception.ResourceNotFoundException;
 import com.nr3101.razorpay.common.util.RandomizerUtil;
+import com.nr3101.razorpay.merchant.cache.ApiKeyCache;
 import com.nr3101.razorpay.merchant.dto.request.CreateApiKeyRequest;
 import com.nr3101.razorpay.merchant.dto.response.ApiKeyResponse;
 import com.nr3101.razorpay.merchant.dto.response.CreateApiKeyResponse;
@@ -30,7 +31,9 @@ public class ApiKeyServiceImpl implements ApiKeyService {
     private final MerchantRepository merchantRepository;
     private final ApiKeyMapper apiKeyMapper;
 
-    private BCryptPasswordEncoder BCRYPT = new BCryptPasswordEncoder();
+    private final ApiKeyCache apiKeyCache;
+
+    private final BCryptPasswordEncoder BCRYPT = new BCryptPasswordEncoder();
 
     @Override
     @Transactional
@@ -74,6 +77,10 @@ public class ApiKeyServiceImpl implements ApiKeyService {
                 .orElseThrow(() -> new ResourceNotFoundException("apiKey", apiKeyId));
 
         apiKey.setEnabled(false);
+
+        // Evict the Api Key data from cache on revoke
+        apiKeyCache.evict(apiKey.getKeyId());
+
         apiKeyRepository.save(apiKey);
     }
 
@@ -95,6 +102,9 @@ public class ApiKeyServiceImpl implements ApiKeyService {
         apiKey.setRotatedAt(LocalDateTime.now());
         apiKey.setGracePeriodExpiresAt(LocalDateTime.now().plusHours(24)); // Set a grace period of 24 hours
         apiKey = apiKeyRepository.save(apiKey);
+
+        // Evict the Api Key data from cache on rotation
+        apiKeyCache.evict(apiKey.getKeyId());
 
         return CreateApiKeyResponse.builder()
                 .id(apiKey.getId())
